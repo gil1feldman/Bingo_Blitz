@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Blitz - BI Dashboard Ultimate</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    <style>
+        /* --- Bingo Blitz Theme Variables --- */
+        :root {
+            --bb-purple: #4b2c92;
+            --bb-purple-light: #6c42c7;
+            --bb-blue: #00bfff; /* Cyan/Electric Blue */
+            --bb-gold: #ffb800; /* Gold for accents */
+            --bb-gold-hover: #e5a500;
+            --bb-text: #2d1b5e; /* Deep purple text */
+            --bb-bg-gradient: linear-gradient(135deg, #2e1065 0%, #1e3a8a 100%);
+            --card-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bb-bg-gradient);
+            margin: 0;
+            padding: 20px;
+            color: var(--bb-text);
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        
+        /* Layout & Navigation */
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 25px;
+            gap: 15px;
+            flex-wrap: wrap;
+            border-bottom: 4px solid rgba(0,0,0,0.05);
+        }
+
+        .nav-bar h2 {
+            color: var(--bb-purple);
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+        }
+
+        .controls-group { display: flex; align-items: center; gap: 12px; flex-grow: 1; flex-wrap: wrap; }
+        
+        .main-grid { display: none; grid-template-columns: 1fr 360px; gap: 25px; margin-bottom: 30px; } 
+        @media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr; } }
+
+        /* UI Elements - Cards */
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: 24px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.5);
+            transition: transform 0.2s;
+        }
+
+        /* Inputs & Selects */
+        select {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 2px solid #e0e7ff;
+            min-width: 200px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 600;
+            color: var(--bb-purple);
+            outline: none;
+        }
+        select:focus { border-color: var(--bb-blue); }
+
+        /* Buttons - Game Style */
+        .btn {
+            padding: 10px 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            border: none;
+            background: #f1f5f9;
+            color: var(--bb-purple);
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-family: 'Nunito', sans-serif;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .btn:active { transform: translateY(0) scale(0.98); }
+
+        .btn-primary.active {
+            background: linear-gradient(135deg, var(--bb-purple), var(--bb-purple-light));
+            color: white;
+            box-shadow: 0 4px 12px rgba(75, 44, 146, 0.3);
+        }
+
+        .btn-accent {
+            background: linear-gradient(135deg, var(--bb-gold), var(--bb-gold-hover));
+            color: #422006;
+            font-weight: 800;
+        }
+
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .btn-success.active { background: linear-gradient(135deg, #059669, #047857); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+
+        /* Tables */
+        .table-wrap { overflow-y: auto; max-height: 450px; border-radius: 12px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        
+        th {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            padding: 14px;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: var(--bb-purple);
+            font-weight: 800;
+            z-index: 10;
+        }
+        
+        td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; vertical-align: middle; color: #475569; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #f8fafc; }
+        
+        /* Badges */
+        .badge { display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; min-width: 55px; }
+        .badge-up { background: #dcfce7; color: #15803d; } 
+        .badge-down { background: #fee2e2; color: #b91c1c; } 
+        .badge-neutral { background: #f3f4f6; color: #6b7280; }
+
+        /* Top 5 List */
+        .selected-day-banner { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 16px; margin-bottom: 15px; display: none; justify-content: space-between; align-items: center; }
+        .top-list { padding: 0; list-style: none; margin: 0; }
+        .top-list li {
+            display: flex; justify-content: space-between; padding: 12px 0;
+            border-bottom: 1px dashed #e2e8f0; align-items: center;
+        }
+        .top-list li:last-child { border-bottom: none; }
+        
+        .rank-circle {
+            width: 28px; height: 28px;
+            background: linear-gradient(135deg, var(--bb-blue), #3b82f6);
+            color: white;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 0.85rem; font-weight: 800;
+            margin-right: 12px;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        
+        .control-divider { width: 1px; height: 24px; background: #cbd5e1; margin: 0 5px; }
+        
+        #loadingMsg {
+            color: var(--bb-purple);
+            font-weight: 800;
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 16px; background: white; border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* --- KPI Section --- */
+        .kpi-section-title {
+            font-size: 1.6rem; margin: 40px 0 20px 0;
+            color: white;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border-bottom: none;
+            display: flex; align-items: center; gap: 10px;
+        }
+        
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
+        
+        .kpi-card {
+            background: white;
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+            background: linear-gradient(90deg, var(--bb-purple), var(--bb-blue));
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--bb-blue);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        }
+        
+        .kpi-title { font-size: 1rem; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 2.2rem; font-weight: 900; color: var(--bb-purple); margin: 0 0 5px 0; }
+        
+        .kpi-trend { font-size: 0.9rem; font-weight: 700; margin-bottom: 15px; display: inline-block; padding: 2px 8px; border-radius: 8px; }
+        .kpi-trend.up { color: #166534; background: #dcfce7; }
+        .kpi-trend.down { color: #991b1b; background: #fee2e2; }
+        
+        .sparkline-container { height: 70px; width: 100%; position: relative; margin-top: 10px; }
+
+        /* Headers */
+        h3 { color: var(--bb-text); font-weight: 800; font-size: 1.1rem; }
+
+        /* --- FOOTER --- */
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+        .footer strong { color: white; }
+
+        /* Error message */
+        #errorMsg {
+            display: none;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            border-radius: 16px;
+            padding: 16px 24px;
+            font-weight: 700;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="nav-bar">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <h2 style="margin:0; font-size:1.4rem;">Bingo Blitz BI</h2>
+    </div>
+    <div class="controls-group">
+        <select id="tagPicker" multiple title="Select tags"></select>
+        <button class="btn btn-primary" onclick="selectAllTags()">Select All</button>
+        <button class="btn" onclick="clearSelection()">Clear</button>
+        <div class="control-divider"></div>
+        <button id="focusBtn" class="btn btn-success" onclick="toggleFocus30()">Focus Last 30 Days</button>
+    </div>
+    <div id="loadingMsg">⏳ Reading Data...</div>
+</div>
+
+<div id="errorMsg"></div>
+
+<div id="dashboard">
+    <div class="main-grid">
+        <div class="left-col">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 id="chartTitle" style="margin:0;">Activity Trend</h3>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div style="display:flex; background:#f1f5f9; padding:4px; border-radius:50px;">
+                            <button id="btnVal" class="btn btn-primary active" onclick="setViewType('absolute')">Values</button>
+                            <button id="btnPct" class="btn" onclick="setViewType('percentage')">% Share</button>
+                        </div>
+                        <div style="display:flex; background:#f1f5f9; padding:4px; border-radius:50px;">
+                            <button id="btnDaily" class="btn btn-primary active" onclick="setMode('daily')">Daily</button>
+                            <button id="btnMA" class="btn" onclick="setMode('ma')">7D MA</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="height:350px; position: relative;"><canvas id="mainChart"></canvas></div>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <h3>📊 Comparative View (Ranked by Period Average)</h3>
+                <div style="height: 500px; position: relative;">
+                    <canvas id="compChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <div id="selectionBanner" class="selected-day-banner">
+                    <span>Showing data for: <strong id="selectedDateDisplay"></strong></span>
+                    <button class="btn btn-accent" style="padding: 6px 14px; font-size: 0.8rem;" onclick="resetToLatest()">Reset to Latest</button>
+                </div>
+                <div class="table-wrap">
+                    <table id="tagsTable">
+                        <thead>
+                            <tr>
+                                <th>Tag Name</th>
+                                <th>Avg (<span id="colAvgType">Total</span>) ▼</th>
+                                <th>7-Day Trend</th>
+                                <th id="lastDateHeader" style="color:var(--bb-purple)">Selected (vs Avg)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="card">
+                <h3 style="color: var(--bb-gold-hover)">🏆 Top 5 Peaks</h3>
+                <p id="topDatesTitle" style="font-size:0.8rem; color:#64748b; margin-bottom:15px;"></p>
+                <ul id="topDatesList" class="top-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="kpi-section-title">Attributed KPIs (Last 30 Days)</h3>
+    <div id="kpiGrid" class="kpi-grid"></div>
+</div>
+
+<div class="footer">
+    Developed by: <strong>Scooper</strong>
+</div>
+
+<script>
+    Chart.register(ChartDataLabels);
+
+    const PUBLISHED_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR3hpxHKiCSeTlL7Ja5CIphRrTE7skk-HP9X8oelxf8Dvptspxvb4oB5Lo6oVmUkbs1EuH0-hFXLkzG/pub?output=csv';
+    const PROXY_URL = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(PUBLISHED_URL + '&t=' + Date.now());
+
+    // Bingo Blitz Theme Colors for Charts
+    const THEME_PURPLE = '#6c31e3';
+    const THEME_BLUE = '#00c2ff';
+    const THEME_GOLD = '#ffb800';
+
+    let fullRawData = []; 
+    let activeData = []; 
+    let mainChart = null, compChart = null, kpiCharts = []; 
+    let mode = 'daily', viewType = 'absolute', selectedTags = [], focusedIndex = -1, isFocus30 = false;
+
+    window.onload = loadDataFromSheet;
+
+    function showError(msg) {
+        const el = document.getElementById('errorMsg');
+        el.style.display = 'block';
+        el.innerHTML = '⚠️ ' + msg;
+        document.getElementById('loadingMsg').style.display = 'none';
+    }
+
+    async function loadDataFromSheet() {
+        try {
+            const response = await fetch(PROXY_URL);
+            if (!response.ok) {
+                showError(`שגיאה בטעינת הנתונים (${response.status}). ודא שהגיליון מפורסם: File → Share → Publish to web → CSV.`);
+                return;
+            }
+            const csvText = await response.text();
+            if (!csvText || csvText.trim().length === 0) {
+                showError('הגיליון ריק או לא נגיש. ודא שהוא מפורסם כ-CSV.');
+                return;
+            }
+            const workbook = XLSX.read(csvText, { type: 'string', raw: true, cellDates: false });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, { raw: true });
+
+            if (!json || json.length === 0) {
+                showError('לא נמצאו שורות בגיליון.');
+                return;
+            }
+            
+            let dateKey = Object.keys(json[0]).find(k => k.toLowerCase().includes('date')) || Object.keys(json[0])[0];
+            
+            fullRawData = json.map(row => ({
+                ...row,
+                Date: parseCustomDate(row[dateKey])
+            })).filter(r => r.Date !== null).sort((a,b) => a.Date - b.Date);
+
+            if (fullRawData.length === 0) {
+                showError('לא נמצאו שורות עם תאריכים תקינים.');
+                return;
+            }
+
+            applyFilter();
+            fillPicker();
+            render();
+            document.getElementById('loadingMsg').style.display = 'none';
+        } catch (e) {
+            console.error(e);
+            showError('שגיאה לא צפויה: ' + e.message);
+        }
+    }
+
+    function parseCustomDate(s) {
+        if (!s) return null;
+        if (typeof s === 'number') return new Date(Math.round((s - 25569) * 86400 * 1000));
+        const clean = String(s).trim().split(' ')[0];
+        const p = clean.split(/[\/\-\.]/);
+        if (p.length === 3) {
+            let d = parseInt(p[0]), m = parseInt(p[1]), y = parseInt(p[2]);
+            if (y < 100) y += 2000;
+            return new Date(y, m - 1, d, 12, 0, 0);
+        }
+        return null;
+    }
+
+    function applyFilter() {
+        if (isFocus30 && fullRawData.length > 0) {
+            const lastDate = fullRawData[fullRawData.length - 1].Date;
+            const threshold = new Date(lastDate);
+            threshold.setDate(threshold.getDate() - 30);
+            activeData = fullRawData.filter(r => r.Date >= threshold);
+        } else {
+            activeData = [...fullRawData];
+        }
+        focusedIndex = activeData.length - 1;
+    }
+
+    function toggleFocus30() {
+        isFocus30 = !isFocus30;
+        document.getElementById('focusBtn').classList.toggle('active', isFocus30);
+        applyFilter();
+        render();
+    }
+
+    function fillPicker() {
+        const picker = document.getElementById('tagPicker');
+        const keys = Object.keys(fullRawData[0]).filter(k => k !== 'Date' && !k.toLowerCase().includes('date'));
+        picker.innerHTML = '';
+        keys.forEach(k => {
+            const opt = document.createElement('option');
+            opt.value = k; opt.innerText = k;
+            picker.appendChild(opt);
+        });
+        picker.onchange = () => {
+            selectedTags = Array.from(picker.selectedOptions).map(o => o.value);
+            render();
+        };
+    }
+
+    function render() {
+        if (!activeData.length) return;
+        document.getElementById('dashboard').style.display = 'block'; 
+        document.querySelector('.main-grid').style.display = 'grid'; 
+        
+        const isLatest = focusedIndex === activeData.length - 1;
+        const dateStr = formatDateClean(activeData[focusedIndex]);
+        document.getElementById('selectionBanner').style.display = isLatest ? 'none' : 'flex';
+        document.getElementById('selectedDateDisplay').innerText = dateStr;
+        document.getElementById('lastDateHeader').innerText = isLatest ? `Latest (${dateStr})` : `Selected (vs Avg)`;
+
+        const keys = Object.keys(activeData[0]).filter(k => k !== 'Date' && !k.toLowerCase().includes('date'));
+        const allTotals = activeData.map(r => keys.reduce((s, k) => s + (parseFloat(r[k]) || 0), 0));
+
+        let itemsData = keys.map(tag => {
+            const vals = activeData.map((r, i) => {
+                const v = parseFloat(r[tag]) || 0;
+                return viewType === 'absolute' ? v : (allTotals[i] ? (v / allTotals[i] * 100) : 0);
+            });
+            const avgAll = vals.reduce((a, b) => a + b, 0) / vals.length;
+            const avg30 = vals.slice(-30).reduce((a, b) => a + b, 0) / Math.min(vals.length, 30);
+            const current = vals[focusedIndex];
+            const avg7 = vals.slice(Math.max(0, focusedIndex - 6), focusedIndex + 1).reduce((a, b) => a + b, 0) / Math.min(focusedIndex + 1, 7);
+            
+            return { tag, avgAll, avg30, current, avg7, d7: avgAll ? ((avg7 - avgAll) / avgAll * 100) : 0, dL: avgAll ? ((current - avgAll) / avgAll * 100) : 0 };
+        }).sort((a, b) => b.avgAll - a.avgAll);
+
+        drawComparativeChart(itemsData);
+        drawMainChart();
+        drawTop5();
+        
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        itemsData.forEach(it => {
+            const tr = document.createElement('tr');
+            if (selectedTags.includes(it.tag)) tr.style.background = "#eff6ff";
+            tr.innerHTML = `<td><b>${it.tag}</b></td><td><b>${formatNum(it.avgAll)}</b></td>
+                <td>${formatNum(it.avg7)} ${getTrendBadge(it.d7)}</td>
+                <td><b>${formatNum(it.current)}</b> ${getTrendBadge(it.dL)}</td>`;
+            tbody.appendChild(tr);
+        });
+
+        renderKPIGrid(keys);
+    }
+
+    function renderKPIGrid(keys) {
+        const container = document.getElementById('kpiGrid');
+        container.innerHTML = '';
+        
+        kpiCharts.forEach(c => c.destroy());
+        kpiCharts = [];
+
+        const datasetToUse = isFocus30 ? activeData : fullRawData;
+        const last30Data = datasetToUse.slice(-30);
+        const prev30Data = datasetToUse.slice(-60, -30);
+
+        const sortedKeys = keys.map(tag => {
+             const sum30 = last30Data.reduce((s, r) => s + (parseFloat(r[tag]) || 0), 0);
+             return { tag, sum30 };
+        }).sort((a, b) => b.sum30 - a.sum30);
+
+        sortedKeys.forEach(item => {
+            const tag = item.tag;
+            
+            const valsCurr = last30Data.map(r => parseFloat(r[tag]) || 0);
+            const valsPrev = prev30Data.map(r => parseFloat(r[tag]) || 0);
+            
+            const sumCurr = valsCurr.reduce((a,b) => a+b, 0);
+            const sumPrev = valsPrev.reduce((a,b) => a+b, 0);
+
+            let displayVal = sumCurr;
+            let displayPrev = sumPrev;
+            
+            if (viewType === 'percentage') {
+                const totalsCurr = last30Data.map(r => keys.reduce((s, k) => s + (parseFloat(r[k]) || 0), 0));
+                const sharesCurr = valsCurr.map((v, i) => totalsCurr[i] ? (v / totalsCurr[i] * 100) : 0);
+                displayVal = sharesCurr.reduce((a,b)=>a+b,0) / sharesCurr.length; 
+
+                const totalsPrev = prev30Data.map(r => keys.reduce((s, k) => s + (parseFloat(r[k]) || 0), 0));
+                const sharesPrev = valsPrev.map((v, i) => totalsPrev[i] ? (v / totalsPrev[i] * 100) : 0);
+                displayPrev = sharesPrev.reduce((a,b)=>a+b,0) / sharesPrev.length;
+            }
+
+            let pctChange = 0;
+            if (displayPrev > 0) pctChange = ((displayVal - displayPrev) / displayPrev) * 100;
+            
+            const trendClass = pctChange >= 0 ? 'up' : 'down';
+            const trendSign = pctChange >= 0 ? '↑' : '↓';
+
+            const card = document.createElement('div');
+            card.className = 'kpi-card';
+            card.innerHTML = `
+                <div class="kpi-title">${tag}</div>
+                <div class="kpi-value">${formatNum(displayVal)}</div>
+                <span class="kpi-trend ${trendClass}">${trendSign}${Math.abs(pctChange).toFixed(1)}% vs Last 30 Days</span>
+                <div class="sparkline-container">
+                    <canvas id="spark-${tag.replace(/\W/g,'')}"></canvas>
+                </div>
+            `;
+            container.appendChild(card);
+
+            const yValues = viewType === 'percentage' ? 
+                            valsCurr.map((v, i) => { 
+                                const t = last30Data.map(r => keys.reduce((s, k) => s + (parseFloat(r[k]) || 0), 0))[i];
+                                return t ? (v/t*100) : 0;
+                            }) : valsCurr;
+
+            const trendPoints = calculateTrendLine(yValues);
+
+            const ctx = document.getElementById(`spark-${tag.replace(/\W/g,'')}`).getContext('2d');
+            const sparkChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: yValues.map((_, i) => i),
+                    datasets: [
+                        {
+                            data: yValues,
+                            borderColor: THEME_PURPLE, 
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            fill: false
+                        },
+                        {
+                            data: trendPoints,
+                            borderColor: '#94a3b8', 
+                            borderWidth: 2,
+                            borderDash: [5, 5], 
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } },
+                    scales: { x: { display: false }, y: { display: false } },
+                    layout: { padding: 5 }
+                }
+            });
+            kpiCharts.push(sparkChart);
+        });
+    }
+
+    function calculateTrendLine(values) {
+        const n = values.length;
+        if (n === 0) return [];
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        for (let i = 0; i < n; i++) {
+            sumX += i;
+            sumY += values[i];
+            sumXY += i * values[i];
+            sumXX += i * i;
+        }
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+        return values.map((_, i) => slope * i + intercept);
+    }
+
+    function drawComparativeChart(items) {
+        const ctx = document.getElementById('compChart').getContext('2d');
+        if (compChart) compChart.destroy();
+        const labels = items.map(it => it.tag);
+        compChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Overall Avg', data: items.map(it => it.avgAll), backgroundColor: THEME_PURPLE },
+                    { label: 'Last 30D Avg', data: items.map(it => it.avg30), backgroundColor: THEME_BLUE },
+                    { label: 'Latest Value', data: items.map(it => it.current), backgroundColor: THEME_GOLD }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true } },
+                    datalabels: {
+                        color: '#2d1b5e', anchor: 'end', align: 'start', offset: 4,
+                        font: { weight: 'bold', size: 10 },
+                        formatter: (val) => formatNum(val)
+                    }
+                },
+                scales: { x: { beginAtZero: true }, y: { grid: { display: false } } }
+            }
+        });
+    }
+
+    function drawMainChart() {
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        if (mainChart) mainChart.destroy();
+        const labels = activeData.map(r => formatDateClean(r));
+        const keys = Object.keys(activeData[0]).filter(k => k !== 'Date' && !k.toLowerCase().includes('date'));
+        const totals = activeData.map(r => keys.reduce((s, k) => s + (parseFloat(r[k]) || 0), 0));
+        
+        let datasets = [];
+        if (!selectedTags.length) {
+            const raw = viewType === 'absolute' ? totals : totals.map(() => 100);
+            const data = applyMA(raw);
+            const color = THEME_PURPLE;
+            const avg = raw.reduce((a,b)=>a+b,0) / raw.length;
+            
+            datasets.push({ label: 'Total', data: data, borderColor: color, fill: true, backgroundColor: 'rgba(108, 49, 227, 0.1)', tension: 0.3 });
+            datasets.push({
+                label: 'Total Avg', data: new Array(labels.length).fill(avg),
+                borderColor: color, borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0, fill: false, datalabels: { display: false }
+            });
+        } else {
+            selectedTags.forEach((tag, i) => {
+                const color = `hsl(${(i * 137) % 360}, 70%, 50%)`;
+                const raw = activeData.map((r, idx) => {
+                    const v = parseFloat(r[tag]) || 0;
+                    return viewType === 'absolute' ? v : (totals[idx] ? (v / totals[idx] * 100) : 0);
+                });
+                const data = applyMA(raw);
+                const avg = raw.reduce((a,b)=>a+b,0) / raw.length;
+
+                datasets.push({ label: tag, data: data, borderColor: color, tension: 0.3, pointRadius: 2 });
+                datasets.push({
+                    label: `${tag} Avg`, data: new Array(labels.length).fill(avg),
+                    borderColor: color, borderDash: [6, 6], borderWidth: 1.2, pointRadius: 0, fill: false, datalabels: { display: false }
+                });
+            });
+        }
+        mainChart = new Chart(ctx, { 
+            type: 'line', 
+            data: { labels, datasets }, 
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { datalabels: { display: false }, legend: { position: 'bottom' } },
+                interaction: { mode: 'index', intersect: false },
+                onClick: (e) => {
+                    const p = mainChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
+                    if (p.length) { focusedIndex = p[0].index; render(); }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        max: viewType === 'percentage' ? 100 : undefined,
+                        ticks: { callback: v => viewType === 'percentage' ? v + '%' : v } 
+                    } 
+                }
+            }
+        });
+    }
+
+    // Helpers
+    function applyMA(d) { return mode === 'ma' ? d.map((v, i, a) => i < 6 ? v : a.slice(i-6, i+1).reduce((s,n)=>s+n,0)/7) : d; }
+    function formatDateClean(d) { const dt = d.Date || d; return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`; }
+    function formatNum(n) { return viewType === 'percentage' ? n.toFixed(1) + '%' : Math.round(n).toLocaleString(); }
+    function getTrendBadge(pct) {
+        if (isNaN(pct) || !isFinite(pct)) return '<span class="badge badge-neutral">-</span>';
+        const cls = pct >= 15 ? 'badge-up' : (pct <= -15 ? 'badge-down' : 'badge-neutral');
+        return `<span class="badge ${cls}">${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%</span>`;
+    }
+    function selectAllTags() { const p = document.getElementById('tagPicker'); Array.from(p.options).forEach(o => o.selected = true); selectedTags = Array.from(p.options).map(o => o.value); render(); }
+    function clearSelection() { const p = document.getElementById('tagPicker'); Array.from(p.options).forEach(o => o.selected = false); selectedTags = []; render(); }
+    function setMode(m) { mode = m; document.getElementById('btnDaily').className = m === 'daily' ? 'btn btn-primary active' : 'btn'; document.getElementById('btnMA').className = m === 'ma' ? 'btn btn-primary active' : 'btn'; drawMainChart(); }
+    function setViewType(vt) { viewType = vt; document.getElementById('btnVal').className = vt === 'absolute' ? 'btn btn-primary active' : 'btn'; document.getElementById('btnPct').className = vt === 'percentage' ? 'btn btn-primary active' : 'btn'; document.getElementById('colAvgType').innerText = vt === 'absolute' ? 'Total' : 'Share %'; render(); }
+    function resetToLatest() { focusedIndex = activeData.length - 1; render(); }
+    function drawTop5() {
+        const list = document.getElementById('topDatesList');
+        list.innerHTML = '';
+        const totals = activeData.map(r => Object.keys(r).reduce((s, k) => k !== 'Date' ? s + (parseFloat(r[k]) || 0) : s, 0));
+        let data = activeData.map((r, i) => {
+            let v = selectedTags.length ? selectedTags.reduce((s, t) => s + (parseFloat(r[t]) || 0), 0) : totals[i];
+            if (viewType === 'percentage') v = totals[i] ? (v / totals[i] * 100) : 0;
+            return { d: formatDateClean(r), v };
+        });
+        document.getElementById('topDatesTitle').innerText = viewType === 'absolute' ? "Highest Volume Days" : "Highest Share Days";
+        data.sort((a, b) => b.v - a.v).slice(0, 5).forEach((item, i) => {
+            list.innerHTML += `<li><div><span class="rank-circle">${i+1}</span>${item.d}</div><b>${formatNum(item.v)}</b></li>`;
+        });
+    }
+</script>
+</body>
+</html>
