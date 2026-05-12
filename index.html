@@ -338,7 +338,7 @@
     Chart.register(ChartDataLabels);
 
     const PUBLISHED_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR3hpxHKiCSeTlL7Ja5CIphRrTE7skk-HP9X8oelxf8Dvptspxvb4oB5Lo6oVmUkbs1EuH0-hFXLkzG/pub?output=csv';
-    const PROXY_URL = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(PUBLISHED_URL + '&t=' + Date.now());
+    const PROXY_URL = PUBLISHED_URL + '&t=' + Date.now();
 
     // Bingo Blitz Theme Colors for Charts
     const THEME_PURPLE = '#6c31e3';
